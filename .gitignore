@@ -6,13 +6,22 @@ venv/
 env/
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
 
-# Data (Crucial: keeps the 42MB file off GitHub)
-data/athlete_events.csv
-data/noc_regions.csv
+# Data 
+# Using a wildcard to catch any CSVs or temporary data files
+data/*.csv
+data/*.zip
+!data/.gitkeep
 
 # Environment variables
 .env
 
-# MLflow logs
+# MLflow logs and artifacts
 mlruns/
+outputs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/

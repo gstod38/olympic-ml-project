@@ -1,0 +1,16 @@
+# Data settings
+data:
+  raw_path: "data/athlete_events.csv"
+  cleaned_path: "data/athlete_events_cleaned.csv"
+  test_size: 0.2
+  random_state: 42
+
+# Model hyperparameters
+model:
+  n_estimators: 100
+  class_weight: "balanced"
+  n_jobs: -1
+
+# MLflow settings
+mlflow:
+  experiment_name: "Olympic_Medal_Prediction"
