@@ -1,0 +1,18 @@
+# Mac system files
+.DS_Store
+
+# Python environment
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Data (Crucial: keeps the 42MB file off GitHub)
+data/athlete_events.csv
+data/noc_regions.csv
+
+# Environment variables
+.env
+
+# MLflow logs
+mlruns/
