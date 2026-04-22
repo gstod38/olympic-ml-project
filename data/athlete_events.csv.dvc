@@ -1,0 +1,5 @@
+outs:
+- md5: 98aca5d462b9a1465b35ca772d5eeffd
+  size: 41500688
+  hash: md5
+  path: athlete_events.csv

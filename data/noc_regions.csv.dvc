@@ -1,0 +1,5 @@
+outs:
+- md5: a2d5f2c010b593cc5e78d531853ab978
+  size: 3595
+  hash: md5
+  path: noc_regions.csv

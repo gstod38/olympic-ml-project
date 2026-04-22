@@ -1,33 +1,35 @@
 import pandas as pd
 
 def clean_data(df):
-    # 1. Fill Age, Height, Weight gaps using the medians we calculated
+    """Clean the Olympic dataset by handling missing values."""
+    df = df.copy()
+    
+    # Fill missing values for physical attributes
     df['Age'] = df['Age'].fillna(df['Age'].median())
-    df['Height'] = df['Height'].fillna(df.groupby(['Sport', 'Sex'])['Height'].transform('median'))
     df['Height'] = df['Height'].fillna(df['Height'].median())
-    df['Weight'] = df['Weight'].fillna(df.groupby(['Sport', 'Sex'])['Weight'].transform('median'))
     df['Weight'] = df['Weight'].fillna(df['Weight'].median())
     
-    # 2. Fill missing regions
-    df['region'] = df['region'].fillna('Unknown')
+    # Only fill region if the column exists after merging
+    if 'region' in df.columns:
+        df['region'] = df['region'].fillna('Unknown')
     
-    # 3. Create Target Variable
+    # Create the target variable
     df['Medal_Won'] = df['Medal'].apply(lambda x: 1 if pd.notnull(x) else 0)
     
     return df
 
 def encode_features(df):
-    # Binary Encoding
+    """Apply basic encoding to categorical features."""
+    # Convert Sex to binary
     df['Sex'] = df['Sex'].map({'M': 1, 'F': 0})
+    # Convert Season to binary
     df['Season'] = df['Season'].map({'Summer': 1, 'Winter': 0})
     
-    # Frequency Encoding for high-cardinality columns
-    categorical_cols = ['Team', 'NOC', 'City', 'Sport', 'region']
-    for col in categorical_cols:
-        freq = df[col].value_counts(normalize=True)
-        df[col] = df[col].map(freq)
-        
-    # Drop non-numeric and redundant columns
-    cols_to_keep = ['Sex', 'Age', 'Height', 'Weight', 'Team', 'NOC', 
-                    'Year', 'Season', 'City', 'Sport', 'region', 'Medal_Won']
-    return df[cols_to_keep]
+    # Use frequency encoding for high-cardinality strings to keep it simple
+    cols_to_encode = ['Team', 'NOC', 'City', 'Sport', 'region']
+    for col in cols_to_encode:
+        if col in df.columns:
+            freq = df[col].value_counts(normalize=True)
+            df[col] = df[col].map(freq)
+            
+    return df

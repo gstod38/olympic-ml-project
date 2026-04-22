@@ -43,7 +43,7 @@ def test_binary_encoding(sample_data):
     assert encoded['Sex'].iloc[0] == 1  # 'M' should be 1
 
 def test_dataframe_shape(sample_data):
-    """Test 4: Ensure we only keep the 12 columns we need."""
+    """Test 4: Ensure preprocessing preserves the source columns and adds the target."""
     cleaned = clean_data(sample_data)
     encoded = encode_features(cleaned)
-    assert encoded.shape[1] == 12
+    assert encoded.shape[1] == 13
