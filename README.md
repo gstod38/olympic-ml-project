@@ -25,7 +25,7 @@ Preprocessing is defined in `src/preprocess.py`. Missing values are imputed, hig
 ## Repository Structure
 
 ```text
-your-project/
+olympic-ml-project/
 ├── README.md
 ├── requirements.txt
 ├── Dockerfile
