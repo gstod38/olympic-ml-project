@@ -30,9 +30,9 @@ def test_fill_missing_age(sample_data):
 def test_medal_encoding(sample_data):
     """Test 2: Verify Medal_Won is created correctly (1 for medal, 0 for None)."""
     cleaned = clean_data(sample_data)
-    # Row index 1 had 'None' for medal, should be 0
+    
     assert cleaned.loc[1, 'Medal_Won'] == 0
-    # Row index 0 had 'Gold', should be 1
+    
     assert cleaned.loc[0, 'Medal_Won'] == 1
 
 def test_binary_encoding(sample_data):
@@ -40,10 +40,16 @@ def test_binary_encoding(sample_data):
     cleaned = clean_data(sample_data)
     encoded = encode_features(cleaned)
     assert encoded['Sex'].dtype in [np.int64, np.float64, int, float]
-    assert encoded['Sex'].iloc[0] == 1  # 'M' should be 1
+    assert encoded['Sex'].iloc[0] == 1  
 
 def test_dataframe_shape(sample_data):
     """Test 4: Ensure preprocessing preserves the source columns and adds the target."""
     cleaned = clean_data(sample_data)
     encoded = encode_features(cleaned)
     assert encoded.shape[1] == 13
+
+def test_clean_data_does_not_mutate_original(sample_data):
+    """Test 5: Ensure cleaning works on a copy and leaves the original input unchanged."""
+    original = sample_data.copy(deep=True)
+    _ = clean_data(sample_data)
+    pd.testing.assert_frame_equal(sample_data, original)

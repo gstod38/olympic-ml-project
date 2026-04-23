@@ -13,17 +13,27 @@ try:
 except ModuleNotFoundError:
     OpenAI = None
 
+try:
+    from src.preprocess import clean_data, encode_features
+except ModuleNotFoundError:
+    from preprocess import clean_data, encode_features
+
+try:
+    from src.evaluate import get_best_run
+except ModuleNotFoundError:
+    from evaluate import get_best_run
+try:
+    from src.train import configure_mlflow
+except ModuleNotFoundError:
+    from train import configure_mlflow
+
 # 1. Setup
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 with open(PROJECT_ROOT / "configs/config.yaml", "r") as f:
     config = yaml.safe_load(f)
-
-try:
-    from src.preprocess import clean_data, encode_features
-except ModuleNotFoundError:
-    from preprocess import clean_data, encode_features
+configure_mlflow(config)
 
 # 2. API Setup
 nebius_api_key = os.environ.get("NEBIUS_API_KEY")
@@ -89,7 +99,6 @@ client = None
 _freq_maps = None
 _model = None
 
-# --- NEW: Helper to ensure encoding matches training data ---
 def get_training_frequencies():
     """Loads raw data to calculate frequency maps so app.py matches train.py logic."""
     global _freq_maps
@@ -130,8 +139,13 @@ def get_best_model():
     if runs.empty:
         raise RuntimeError("No MLflow runs found. Run `python src/train.py` first.")
 
-    best_run = runs.sort_values("metrics.accuracy", ascending=False).iloc[0]
-    print(f"Using Model from Run ID: {best_run.run_id}")
+    selection_metric = config.get("evaluation", {}).get("selection_metric", "f1")
+    best_run = get_best_run(runs, selection_metric)
+    selected_metric_name = best_run["selected_metric_name"]
+    print(
+        f"Using Model from Run ID: {best_run.run_id} "
+        f"({selected_metric_name}={best_run[f'metrics.{selected_metric_name}']:.4f})"
+    )
     _model = mlflow.sklearn.load_model(f"runs:/{best_run.run_id}/olympic_medal_model")
     return _model
 
@@ -175,6 +189,35 @@ def redirect_message():
     return (
         "This app only predicts Olympic medal outcomes from athlete descriptions. "
         "Try something like: '25 year old male swimmer from the USA competing in Rio 2016.'"
+    )
+
+
+def find_missing_athlete_details(user_query):
+    normalized = user_query.lower()
+    tokens = set(re.findall(r"[a-zA-Z]+", normalized))
+    missing = []
+
+    has_sport = any(alias in normalized for alias in SPORT_ALIASES)
+    has_country = any(country in normalized for country in COUNTRY_TO_NOC)
+    has_context = bool(re.search(r"\b(18|19|20)\d{2}\b", normalized)) or any(city in normalized for city in CITY_TO_REGION)
+
+    if not has_sport:
+        missing.append("sport")
+    if not has_country:
+        missing.append("country or team")
+    if not has_context:
+        missing.append("Olympic year or host city")
+    if not ({"male", "female", "man", "woman", "boy", "girl"} & tokens):
+        missing.append("sex")
+
+    return missing
+
+
+def clarification_message(missing_details):
+    joined = ", ".join(missing_details)
+    return (
+        "I need a bit more detail before I can make a medal prediction. "
+        f"Please include the athlete's {joined}."
     )
 
 def infer_season(year):
@@ -226,7 +269,7 @@ def local_parse_input(user_query):
     }
 
 def parse_input_with_llm(user_query):
-    if OpenAI is None or not nebius_api_key:
+    if os.environ.get("PYTEST_CURRENT_TEST") or OpenAI is None or not nebius_api_key:
         return local_parse_input(user_query)
 
     system_prompt = """
@@ -256,13 +299,16 @@ def main():
         if not looks_like_athlete_query(user_input):
             print(f"\n{redirect_message()}")
             continue
+
+        missing_details = find_missing_athlete_details(user_input)
+        if missing_details:
+            print(f"\n{clarification_message(missing_details)}")
+            continue
             
         try:
             features_dict = parse_input_with_llm(user_input)
             input_df = pd.DataFrame([features_dict])
             
-            # CRITICAL FIX: Manually apply the frequencies from training
-            # This ensures 'USA' becomes 0.07, not 1.0
             for col, mapping in freq_maps.items():
                 input_df[col] = input_df[col].map(mapping).fillna(0.0)
             

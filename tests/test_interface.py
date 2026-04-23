@@ -1,5 +1,5 @@
 import pytest
-from src.app import parse_input_with_llm
+from src.app import clarification_message, find_missing_athlete_details, parse_input_with_llm
 
 def test_extraction_accuracy():
     """
@@ -25,8 +25,6 @@ def test_edge_case_missing_data():
     query = "A runner from Ethiopia in the 2012 London games"
     features = parse_input_with_llm(query)
     
-    # The LLM should have 'hallucinated' reasonable defaults for Height/Weight 
-    # instead of leaving them null, which would crash the model.
     assert 'Height' in features
     assert 'Weight' in features
     assert features['NOC'] == 'ETH'
@@ -37,15 +35,21 @@ def test_invalid_input_handling():
     Test 3: Verify the system handles out-of-scope queries.
     Requirement: Out-of-scope queries are caught.
     """
-    # Note: Depending on your app.py logic, this might return a specific 
-    # error or a null dictionary. This test assumes your LLM tries to 
-    # fit it into a schema or your code catches the mismatch.
+
     query = "How do I make a pepperoni pizza?"
     
     try:
         features = parse_input_with_llm(query)
-        # If the LLM returns a dict, it shouldn't have valid Olympic data
         assert features.get('Sport') is None or features.get('Sport') == "Unknown"
     except Exception:
-        # If your app.py raises an error for non-Olympic queries, that's also a pass
         pass
+
+def test_incomplete_input_requests_clarification():
+    """
+    Test 4: Verify incomplete athlete descriptions are redirected into a clarification request.
+    """
+    missing = find_missing_athlete_details("A talented athlete from the USA")
+    assert "sport" in missing
+    assert "Olympic year or host city" in missing
+    message = clarification_message(missing)
+    assert "I need a bit more detail" in message

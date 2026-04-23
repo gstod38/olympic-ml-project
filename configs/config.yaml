@@ -1,18 +1,64 @@
 # Data settings
 data:
   raw_path: "data/athlete_events.csv"
+  region_path: "data/noc_regions.csv"
   cleaned_path: "data/athlete_events_cleaned.csv"
   test_size: 0.2
   random_state: 42
+  data_version: "athlete_events.csv + noc_regions.csv tracked with DVC pointer files"
 
-# Model hyperparameters - These are the values you'll tweak for your 5 runs
-model:
-  n_estimators: 500
-  max_depth: 50
-  class_weight: "balanced"
-  random_state: 42
-  n_jobs: -1
+# Preprocessing notes
+preprocessing:
+  scale_numeric_features: false
+  scaling_rationale: "Tree-based models do not require feature scaling, so numeric values are kept in their original units."
+
+# Model configurations for MLflow comparison runs
+model_configs:
+  - name: "rf_baseline"
+    classifier: "random_forest"
+    params:
+      n_estimators: 200
+      max_depth: 20
+      random_state: 42
+      n_jobs: -1
+  - name: "rf_balanced"
+    classifier: "random_forest"
+    params:
+      n_estimators: 500
+      max_depth: 50
+      class_weight: "balanced"
+      random_state: 42
+      n_jobs: -1
+  - name: "rf_shallow_balanced"
+    classifier: "random_forest"
+    params:
+      n_estimators: 300
+      max_depth: 12
+      min_samples_leaf: 4
+      class_weight: "balanced_subsample"
+      random_state: 42
+      n_jobs: -1
+  - name: "extra_trees_balanced"
+    classifier: "extra_trees"
+    params:
+      n_estimators: 400
+      max_depth: 30
+      class_weight: "balanced"
+      random_state: 42
+      n_jobs: -1
+  - name: "gradient_boosting"
+    classifier: "gradient_boosting"
+    params:
+      n_estimators: 250
+      learning_rate: 0.05
+      max_depth: 3
+      random_state: 42
 
 # MLflow settings
 mlflow:
   experiment_name: "Olympic_Medal_Prediction"
+  tracking_path: "mlruns"
+
+# Best-model selection
+evaluation:
+  selection_metric: "f1"
